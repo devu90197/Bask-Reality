@@ -10,6 +10,7 @@ export default function useSmoothScroll(pathname) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
     const instance = new Lenis({ duration: 1.25, easing: (t) => 1 - Math.pow(1 - t, 4), smoothWheel: true });
     lenis.current = instance;
+    window.__lenis = instance;
     let frame;
     const raf = (time) => {
       instance.raf(time);

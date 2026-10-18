@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../context/StoreContext';
@@ -7,12 +7,14 @@ import MapEmbed from '../components/ui/MapEmbed';
 import PropertyCard from '../components/ui/PropertyCard';
 import InquiryForm from '../components/ui/InquiryForm';
 import SmartImage from '../components/ui/SmartImage';
+import Lightbox from '../components/ui/Lightbox';
 import { amenityIcon } from '../data/amenities';
 
 export default function PropertyDetail() {
   const { id } = useParams();
   const { properties, agents, favorites, toggleFavorite, ready, mortgage, settings } = useStore();
   const [lightbox, setLightbox] = useState(null);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
   const p = properties.find((x) => x.id === id);
 
   if (!ready) return <div className="container section empty">Loading…</div>;
@@ -33,7 +35,6 @@ export default function PropertyDetail() {
   const rate = settings.mortgageRate || mortgage?.rate30;
   const est = rate ? monthlyPayment(p.price * 0.8, rate, 30) : null;
   const photos = (p.images || []).filter(Boolean);
-  const step = (d) => setLightbox((i) => (i + d + photos.length) % photos.length);
 
   return (
     <div className="container" style={{ paddingBlock: '28px 80px' }}>
@@ -119,30 +120,8 @@ export default function PropertyDetail() {
       </section>
 
       <AnimatePresence>
-        {lightbox !== null && (
-          <motion.div className="lightbox" onClick={() => setLightbox(null)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.img
-              key={lightbox}
-              src={photos[lightbox]}
-              alt={`Photo ${lightbox + 1}`}
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.85, rotateY: 25, opacity: 0 }}
-              animate={{ scale: 1, rotateY: 0, opacity: 1 }}
-              style={{ transformPerspective: 1200 }}
-            />
-            {photos.length > 1 && (
-              <>
-                <button className="lb-nav prev" aria-label="Previous photo" onClick={(e) => { e.stopPropagation(); step(-1); }}>‹</button>
-                <button className="lb-nav next" aria-label="Next photo" onClick={(e) => { e.stopPropagation(); step(1); }}>›</button>
-              </>
-            )}
-            <span className="lb-count">{lightbox + 1} / {photos.length}</span>
-            <div className="lb-thumbs" onClick={(e) => e.stopPropagation()}>
-              {photos.map((src, i) => (
-                <img key={i} src={src} alt="" className={i === lightbox ? 'on' : ''} onClick={() => setLightbox(i)} />
-              ))}
-            </div>
-          </motion.div>
+        {lightbox !== null && photos.length > 0 && (
+          <Lightbox photos={photos} index={lightbox} onIndex={setLightbox} onClose={closeLightbox} />
         )}
       </AnimatePresence>
     </div>
