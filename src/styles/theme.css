@@ -425,3 +425,16 @@ td .gselect-sm { min-width: 140px; }
 .gselect-list li span { white-space: nowrap; }
 .gselect-list::-webkit-scrollbar { width: 8px; }
 .gselect-list::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, .15); border-radius: 8px; }
+
+/* Enterprise typography: one typeface (Inter) everywhere, tight headings, tabular numbers */
+body, button, input, select, textarea, h1, h2, h3, h4, .cine-title {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+}
+h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.025em; }
+h1 { font-size: clamp(2rem, 1.3rem + 3vw, 3.6rem); line-height: 1.08; }
+h2 { font-size: clamp(1.5rem, 1.15rem + 1.4vw, 2.25rem); line-height: 1.15; }
+h3 { font-weight: 600; letter-spacing: -0.015em; }
+.pcard-price, .calc-result, .stat b, .fact b, td, .detail-layout h1, .glass-stat strong { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.detail-layout h1 { font-weight: 700; }
+.eyebrow { letter-spacing: .12em; font-weight: 600; }
