@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { setCurrency } from '../utils/format';
 import { fetchLiveRates, RATES_REFRESH_MS } from '../utils/rates';
-import { api, setToken } from '../utils/api';
+import { API_BASE, DEMO, api, setToken } from '../utils/api';
 
 const StoreContext = createContext(null);
 
@@ -55,7 +55,12 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     Promise.all(Object.values(fetchers).map((f) => f().catch(() => setOnline(false))))
       .finally(() => setReady(true));
-    const es = new EventSource('/api/events');
+    if (DEMO) {
+      const onChange = (e) => fetchers[e.detail.collection]?.().catch(() => {});
+      window.addEventListener('bask:change', onChange);
+      return () => window.removeEventListener('bask:change', onChange);
+    }
+    const es = new EventSource(`${API_BASE}/events`);
     es.onopen = () => setOnline(true);
     es.onerror = () => setOnline(false);
     es.onmessage = (e) => {

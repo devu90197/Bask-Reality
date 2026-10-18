@@ -39,3 +39,10 @@ Photos are free Unsplash images. Replace or delete the sample listings from the 
 
 Sign in at `/login`. The default admin is `admin@baskreality.com` / `admin123`.
 Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables to change them before going live.
+
+## Demo mode (current Vercel deployment)
+
+Production builds without `VITE_API_URL` run in demo mode: the sample data from `server/seed.js`
+is served in the browser (`src/utils/demoApi.js`), so the site works on static hosting with no server.
+Admin sign-in: `admin@baskreality.com` / `admin123`. Edits are saved in that browser only.
+When the backend is deployed, set `VITE_API_URL` (e.g. `https://api.example.com`) in Vercel and redeploy.
