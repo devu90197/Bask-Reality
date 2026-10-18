@@ -185,9 +185,9 @@ p { margin: 0 0 1em; }
 
 /* Detail */
 .gallery { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; height: clamp(280px, 50vw, 560px); border-radius: var(--radius); overflow: hidden; }
-.gallery img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
-.gallery img:first-child { grid-row: span 2; }
-@media (max-width: 640px) { .gallery { grid-template-columns: 1fr; grid-template-rows: 1fr; } .gallery img:not(:first-child) { display: none; } .gallery img:first-child { grid-row: auto; } }
+.gallery > img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.gallery > img:first-child { grid-row: span 2; }
+@media (max-width: 640px) { .gallery { grid-template-columns: 1fr; grid-template-rows: 1fr; } .gallery > img:not(:first-child) { display: none; } .gallery > img:first-child { grid-row: auto; } }
 .detail-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; margin-top: 28px; }
 .detail-aside { position: sticky; top: calc(var(--nav-h) + 16px); align-self: start; }
 @media (max-width: 960px) { .detail-layout { grid-template-columns: 1fr; } .detail-aside { position: static; } }

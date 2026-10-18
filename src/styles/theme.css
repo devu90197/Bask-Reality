@@ -452,3 +452,21 @@ h3 { font-weight: 600; letter-spacing: -0.01em; }
   .lb-thumbs { justify-content: flex-start; }
   .lb-thumbs img { width: 60px; height: 44px; }
 }
+
+/* Mobile menu: liquid-glass drawer sliding in from the right, above everything */
+.menu-backdrop { position: fixed; inset: 0; z-index: 1500; background: rgba(15, 23, 42, .28); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.mobile-menu {
+  position: fixed; top: 10px; right: 10px; bottom: 10px; left: auto; inset-inline-start: auto;
+  width: min(84vw, 340px); z-index: 1600; padding: 16px 16px 20px; gap: 2px;
+  display: flex; flex-direction: column; overflow-y: auto; border-radius: 24px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .78), rgba(255, 255, 255, .5));
+  -webkit-backdrop-filter: blur(26px) saturate(190%); backdrop-filter: blur(26px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, .25), inset 0 1px 0 #fff;
+}
+.menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 4px 4px 12px; border-bottom: 1px solid var(--line); }
+.menu-close { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .7); font-size: 1rem; cursor: pointer; }
+.mobile-menu a:not(.btn) { padding: 12px 14px; font-size: 1.02rem; font-weight: 600; color: #1e293b; border: 0; border-radius: 12px; }
+.mobile-menu a:not(.btn):hover, .mobile-menu a.active { background: var(--brand-50); color: var(--brand); }
+.menu-foot { margin-top: auto; padding-top: 16px; }
+@media (max-width: 600px) { .hero .glass-stat { min-width: 0; padding: 10px 12px; } }

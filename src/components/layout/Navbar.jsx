@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../../context/StoreContext';
 
@@ -30,7 +31,16 @@ export default function Navbar() {
 
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
+    if (!open) return undefined;
+    const close = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.documentElement.style.overflow = 'hidden';
+    window.__lenis?.stop();
+    window.addEventListener('keydown', close);
+    return () => {
+      document.documentElement.style.overflow = '';
+      window.__lenis?.start();
+      window.removeEventListener('keydown', close);
+    };
   }, [open]);
 
   const onLogout = () => { logout(); navigate('/'); };
@@ -59,25 +69,40 @@ export default function Navbar() {
           </button>
         </div>
       </div>
-      <AnimatePresence>
-        {open && (
-          <motion.nav
-            className="mobile-menu"
-            initial={{ opacity: 0, rotateX: -15, y: -20 }}
-            animate={{ opacity: 1, rotateX: 0, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={{ transformPerspective: 800, transformOrigin: 'top' }}
-          >
-            {NAV_LINKS.map((l) => <Link key={l.to} to={l.to}>{l.label}</Link>)}
-            <Link to="/favorites">Saved homes</Link>
-            <Link to="/contact">Contact</Link>
-            {session?.role === 'admin' && <Link to="/admin">Admin panel</Link>}
-            {session
-              ? <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={onLogout}>Log out</button>
-              : <Link to="/login" className="btn btn-primary" style={{ marginTop: 16, borderBottom: 0 }}>Sign in</Link>}
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      {/* Rendered into <body>: the glass navbar's backdrop-filter would otherwise trap this fixed drawer. */}
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <>
+              <motion.div className="menu-backdrop" onClick={() => setOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+              <motion.nav
+                className="mobile-menu"
+                aria-label="Menu"
+                data-lenis-prevent
+                initial={{ x: '105%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '105%' }}
+                transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+              >
+                <div className="menu-head">
+                  <Logo />
+                  <button className="menu-close" aria-label="Close menu" onClick={() => setOpen(false)}>✕</button>
+                </div>
+                {NAV_LINKS.map((l) => <NavLink key={l.to} to={l.to}>{l.label}</NavLink>)}
+                <NavLink to="/favorites">Saved homes</NavLink>
+                <NavLink to="/contact">Contact</NavLink>
+                {session?.role === 'admin' && <NavLink to="/admin">Admin panel</NavLink>}
+                <div className="menu-foot">
+                  {session
+                    ? <button className="btn btn-ghost btn-block" onClick={onLogout}>Log out</button>
+                    : <Link to="/login" className="btn btn-primary btn-block">Sign in</Link>}
+                </div>
+              </motion.nav>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </header>
   );
 }
