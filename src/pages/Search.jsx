@@ -5,6 +5,7 @@ import { useStore } from '../context/StoreContext';
 import PropertyCard from '../components/ui/PropertyCard';
 import PageHero from '../components/ui/PageHero';
 import MapEmbed from '../components/ui/MapEmbed';
+import Select from '../components/ui/Select';
 import { getCurrency } from '../utils/format';
 
 const TYPES = ['House', 'Condo', 'Apartment', 'Villa', 'Townhouse', 'Multi-family', 'Land'];
@@ -101,12 +102,12 @@ export default function Search({ status }) {
               <button className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}>Grid</button>
               <button className={view === 'map' ? 'active' : ''} onClick={() => setView('map')}>Map</button>
             </div>
-            <select className="select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">
-              <option value="newest">Sort: Newest</option>
-              <option value="low">Price: Low to high</option>
-              <option value="high">Price: High to low</option>
-              <option value="sqft">Size: Largest</option>
-            </select>
+            <Select ariaLabel="Sort by" size="sm" value={sort} onChange={setSort} options={[
+              { value: 'newest', label: 'Sort: Newest' },
+              { value: 'low', label: 'Price: Low to high' },
+              { value: 'high', label: 'Price: High to low' },
+              { value: 'sqft', label: 'Size: Largest' },
+            ]} />
           </div>
         </div>
       </div>

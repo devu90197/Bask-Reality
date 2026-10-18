@@ -1,4 +1,5 @@
 import { useStore } from '../../context/StoreContext';
+import Select from '../../components/ui/Select';
 
 const STATUSES = ['new', 'contacted', 'closed'];
 
@@ -24,9 +25,7 @@ export default function Inquiries() {
                   <div className="muted" style={{ fontSize: '.85rem' }}>{q.message}</div>
                 </td>
                 <td>
-                  <select className="select" value={q.status} onChange={(e) => updateInquiry(q.id, { status: e.target.value })}>
-                    {STATUSES.map((s) => <option key={s}>{s}</option>)}
-                  </select>
+                  <Select ariaLabel={`Status for ${q.name}`} size="sm" value={q.status} onChange={(status) => updateInquiry(q.id, { status })} options={STATUSES} />
                 </td>
                 <td><button className="btn btn-danger btn-sm" onClick={() => deleteInquiry(q.id)}>Delete</button></td>
               </tr>

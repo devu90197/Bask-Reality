@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { CURRENCIES, formatPrice } from '../../utils/format';
+import Select from '../../components/ui/Select';
 
 const money = (n, code, locale) =>
   new Intl.NumberFormat(locale, { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n);
@@ -45,9 +46,7 @@ export default function Settings() {
 
           <div className="field">
             <label htmlFor="cur">Display currency</label>
-            <select id="cur" className="select" value={code} onChange={(e) => pick(e.target.value)}>
-              {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
-            </select>
+            <Select id="cur" value={code} onChange={pick} options={CURRENCIES.map((c) => ({ value: c.code, label: `${c.code} — ${c.label}` }))} />
           </div>
 
           <label style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, fontWeight: 600 }}>

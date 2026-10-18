@@ -2,6 +2,7 @@ import PageHero from '../components/ui/PageHero';
 import Reveal from '../components/ui/Reveal';
 import TiltCard from '../components/ui/TiltCard';
 import InquiryForm from '../components/ui/InquiryForm';
+import Select from '../components/ui/Select';
 
 const steps = [
   { n: '01', title: 'Free home valuation', text: 'Your agent prepares a pricing analysis based on recent local sales.' },
@@ -42,9 +43,7 @@ export default function Sell() {
                   <div className="field"><label htmlFor="s-addr">Property address</label><input id="s-addr" name="address" className="input" required /></div>
                   <div className="field">
                     <label htmlFor="s-time">When are you selling?</label>
-                    <select id="s-time" name="timeline" className="select">
-                      <option>ASAP</option><option>1–3 months</option><option>3–6 months</option><option>Just curious</option>
-                    </select>
+                    <Select id="s-time" name="timeline" options={['ASAP', '1–3 months', '3–6 months', 'Just curious']} />
                   </div>
                 </div>
               }

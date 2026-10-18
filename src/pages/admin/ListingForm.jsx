@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../context/StoreContext';
 import ImageManager from '../../components/ui/ImageManager';
 import AmenityPicker from '../../components/ui/AmenityPicker';
+import Select from '../../components/ui/Select';
 import { STATUSES } from '../../utils/format';
 
 const EMPTY = {
@@ -93,10 +94,10 @@ function ListingEditor({ existing }) {
             {input('zip', 'ZIP / PIN')}
             {input('price', STATUSES[form.status].recurring ? 'Price per month (USD)' : 'Price (USD)', 'number', { min: 0 })}
             <div className="field"><label htmlFor="f-status">Status</label>
-              <select id="f-status" className="select" value={form.status} onChange={set('status')}>{Object.entries(STATUSES).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
+              <Select id="f-status" value={form.status} onChange={patch('status')} options={Object.entries(STATUSES).map(([k, s]) => ({ value: k, label: s.label }))} />
             </div>
             <div className="field"><label htmlFor="f-type">Type</label>
-              <select id="f-type" className="select" value={form.type} onChange={set('type')}>{['House', 'Condo', 'Apartment', 'Villa', 'Townhouse', 'Multi-family', 'Land'].map((t) => <option key={t}>{t}</option>)}</select>
+              <Select id="f-type" value={form.type} onChange={patch('type')} options={['House', 'Condo', 'Apartment', 'Villa', 'Townhouse', 'Multi-family', 'Land']} />
             </div>
             {input('beds', 'Beds', 'number', { min: 0 })}
             {input('baths', 'Baths', 'number', { min: 0, step: 0.5 })}
@@ -104,7 +105,7 @@ function ListingEditor({ existing }) {
             {input('yearBuilt', 'Year built', 'number')}
             {input('lot', 'Lot size')}
             <div className="field"><label htmlFor="f-agent">Agent</label>
-              <select id="f-agent" className="select" value={form.agentId} onChange={set('agentId')}><option value="">No agent</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+              <Select id="f-agent" value={form.agentId} onChange={patch('agentId')} options={[{ value: '', label: 'No agent' }, ...agents.map((a) => ({ value: a.id, label: a.name }))]} />
             </div>
             {input('title', 'Title (optional)')}
           </div>
