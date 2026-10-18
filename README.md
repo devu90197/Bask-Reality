@@ -9,7 +9,14 @@ Frontend: React, Vite, React Router, Framer Motion. Backend: Node.js with no ext
 npm install
 npm run dev      # API on :5174 + website on http://localhost:5173
 npm run build    # production build of the website in dist/
+npm run seed     # reload the sample data (then restart npm run dev)
 ```
+
+## Sample data
+
+A fresh install starts with sample data from `server/seed.js`: 18 Bengaluru listings
+(8 for sale, 5 for rent, 5 for lease) with photos and amenities, 6 agents and 6 inquiries.
+Photos are free Unsplash images. Replace or delete the sample listings from the admin panel.
 
 ## Live data
 

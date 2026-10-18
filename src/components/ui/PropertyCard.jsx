@@ -28,9 +28,9 @@ export default function PropertyCard({ property: p }) {
       <Link to={`/property/${p.id}`} className="pcard-body">
         <div className="pcard-price">{listingPrice(p)}</div>
         <div className="pcard-specs">
-          <span><b>{p.beds}</b> bd</span>
-          <span><b>{p.baths}</b> ba</span>
-          <span><b>{Number(p.sqft).toLocaleString()}</b> sqft</span>
+          {p.beds ? <span><b>{p.beds}</b> bd</span> : null}
+          {p.baths ? <span><b>{p.baths}</b> ba</span> : null}
+          {p.sqft ? <span><b>{Number(p.sqft).toLocaleString()}</b> sqft</span> : null}
         </div>
         <div className="muted" style={{ fontSize: '.92rem' }}>{p.address}, {p.city}, {p.state}</div>
       </Link>
