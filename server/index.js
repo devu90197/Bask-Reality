@@ -9,8 +9,27 @@ const PORT = Number(process.env.PORT) || 5174;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@baskreality.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-const sessions = new Map(); // token -> { id, name, email, role }
 const streams = new Set();
+const ACTIVITY_LIMIT = 300;
+const TRACKED = ['view', 'search']; // activity types the browser may report; the rest are logged here
+
+// Sign-ins are kept in the database (token -> { id, role }), so they survive a server restart.
+// The account itself is looked up on every request, so profile edits and deletions apply at once.
+const sessions = {
+  get: (token) => {
+    const s = db.get('sessions')?.[token];
+    if (!s) return null;
+    if (s.role === 'admin') return s;
+    const u = db.get('users').find((x) => x.id === s.id);
+    return u ? { ...publicUser(u), role: 'user' } : null;
+  },
+  set: (token, s) => db.set('sessions', { ...db.get('sessions'), [token]: s }),
+  delete: (token) => {
+    const all = { ...db.get('sessions') };
+    delete all[token];
+    db.set('sessions', all);
+  },
+};
 
 const uid = () => randomBytes(5).toString('hex');
 const hash = (pw, salt = randomBytes(16).toString('hex')) => `${salt}:${scryptSync(pw, salt, 32).toString('hex')}`;
@@ -18,11 +37,51 @@ const verify = (pw, stored) => {
   const [salt, key] = stored.split(':');
   return timingSafeEqual(Buffer.from(key, 'hex'), scryptSync(pw, salt, 32));
 };
-const publicUser = ({ password, ...u }) => u;
+const publicUser = ({ password, saved, calcs, activity, ...u }) => u;
 
-// Tells every open browser which collection changed so it can refetch.
-const broadcast = (collection) => {
-  for (const res of streams) res.write(`data: ${JSON.stringify({ collection })}\n\n`);
+// What the admin Users list shows: the profile plus a few counts.
+const userSummary = (u) => ({
+  ...publicUser(u),
+  savedCount: (u.saved || []).length,
+  calcCount: (u.calcs || []).length,
+  lastActiveAt: u.activity?.[0]?.at || u.createdAt,
+});
+
+const findUser = (id) => {
+  const u = db.get('users').find((x) => x.id === id);
+  if (!u) throw Object.assign(new Error('Account not found'), { status: 404 });
+  return u;
+};
+
+const updateUser = (id, fn) => {
+  let updated = null;
+  db.set('users', db.get('users').map((u) => (u.id === id ? (updated = fn(u)) : u)));
+  broadcast('me', id);
+  broadcast('users');
+  return updated;
+};
+
+const logActivity = (id, type, data = {}) => updateUser(id, (u) => ({
+  ...u,
+  activity: [{ id: uid(), type, at: Date.now(), data }, ...(u.activity || [])].slice(0, ACTIVITY_LIMIT),
+}));
+
+// Everything an account owns, plus every inquiry it sent (by account, or by the same email before signing up).
+const accountData = (id) => {
+  const u = findUser(id);
+  return {
+    profile: publicUser(u),
+    saved: u.saved || [],
+    calcs: u.calcs || [],
+    activity: u.activity || [],
+    inquiries: db.get('inquiries').filter((q) => q.userId === id || (q.email && q.email.toLowerCase() === u.email)),
+  };
+};
+
+// Tells every open browser which collection changed so it can refetch. `userId` scopes
+// per-account changes, so only that account's tabs refetch.
+const broadcast = (collection, userId) => {
+  for (const res of streams) res.write(`data: ${JSON.stringify({ collection, userId })}\n\n`);
 };
 
 const send = (res, status, body) => {
@@ -43,7 +102,7 @@ const readBody = (req) => new Promise((resolve, reject) => {
 
 const createSession = (user) => {
   const token = randomBytes(24).toString('hex');
-  sessions.set(token, user);
+  sessions.set(token, { id: user.id, role: user.role, ...(user.role === 'admin' ? { name: user.name, email: user.email } : {}) });
   return { token, user };
 };
 
@@ -87,14 +146,109 @@ const C = {
 
 const routes = [
   ['GET', /^\/api\/(properties|agents|inquiries)$/, (m) => C[m[1]].list],
-  ['POST', /^\/api\/(properties|agents|inquiries)$/, (m) => C[m[1]].create],
+  // Inquiries from a signed-in client are tied to their account and added to its history.
+  ['POST', /^\/api\/inquiries$/, () => ({
+    fn: ({ body, user }) => {
+      const mine = user?.role === 'user';
+      const item = { ...body, id: uid(), createdAt: Date.now(), ...(mine ? { userId: user.id } : {}) };
+      db.set('inquiries', [item, ...db.get('inquiries')]);
+      broadcast('inquiries');
+      if (mine) logActivity(user.id, 'inquiry', { inquiryId: item.id, type: item.type, subject: item.subject || item.address || '', propertyId: item.propertyId });
+      return item;
+    },
+  })],
+  ['POST', /^\/api\/(properties|agents)$/, (m) => C[m[1]].create],
   ['PATCH', /^\/api\/(properties|agents|inquiries)\/([\w-]+)$/, (m) => C[m[1]].update],
   ['DELETE', /^\/api\/(properties|agents|inquiries)\/([\w-]+)$/, (m) => C[m[1]].remove],
 
-  ['GET', /^\/api\/users$/, () => ({ auth: 'admin', fn: () => db.get('users').map(publicUser) })],
+  ['GET', /^\/api\/users$/, () => ({ auth: 'admin', fn: () => db.get('users').map(userSummary) })],
+  ['GET', /^\/api\/users\/([\w-]+)\/data$/, () => ({ auth: 'admin', fn: ({ id }) => accountData(id) })],
+
+  // ---- Client account: saved homes, calculations, history, profile ----
+  ['GET', /^\/api\/me\/data$/, () => ({ auth: 'user', fn: ({ user }) => accountData(user.id) })],
+  ['PATCH', /^\/api\/me\/saved$/, () => ({
+    auth: 'user',
+    fn: ({ user, body }) => {
+      const before = new Set(findUser(user.id).saved || []);
+      const ids = [...new Set((body.ids || []).filter((x) => typeof x === 'string'))];
+      const after = new Set(ids);
+      const titleOf = (pid) => db.get('properties').find((p) => p.id === pid)?.title || '';
+      updateUser(user.id, (u) => ({ ...u, saved: ids }));
+      ids.filter((pid) => !before.has(pid)).forEach((pid) => logActivity(user.id, 'save', { propertyId: pid, title: titleOf(pid) }));
+      [...before].filter((pid) => !after.has(pid)).forEach((pid) => logActivity(user.id, 'unsave', { propertyId: pid, title: titleOf(pid) }));
+      return { saved: ids };
+    },
+  })],
+  ['POST', /^\/api\/me\/calcs$/, () => ({
+    auth: 'user',
+    fn: ({ user, body }) => {
+      const u = findUser(user.id);
+      const existingIdx = body.id ? (u.calcs || []).findIndex((c) => c.id === body.id) : -1;
+      let calc;
+      if (existingIdx >= 0) {
+        calc = { ...u.calcs[existingIdx], ...body, updatedAt: Date.now() };
+        const nextCalcs = [...(u.calcs || [])];
+        nextCalcs[existingIdx] = calc;
+        updateUser(user.id, (prev) => ({ ...prev, calcs: nextCalcs }));
+      } else {
+        calc = { ...body, id: uid(), createdAt: Date.now() };
+        updateUser(user.id, (prev) => ({ ...prev, calcs: [calc, ...(prev.calcs || [])] }));
+        logActivity(user.id, 'calc', { calcId: calc.id, name: calc.name, monthly: calc.monthly });
+      }
+      return calc;
+    },
+  })],
+  ['PATCH', /^\/api\/me\/calcs\/([\w-]+)$/, () => ({
+    auth: 'user',
+    fn: ({ user, id, body }) => {
+      let updated = null;
+      updateUser(user.id, (prev) => {
+        const calcs = (prev.calcs || []).map((c) => {
+          if (c.id === id) {
+            updated = { ...c, ...body, id, updatedAt: Date.now() };
+            return updated;
+          }
+          return c;
+        });
+        return { ...prev, calcs };
+      });
+      if (!updated) throw Object.assign(new Error('Calculation not found'), { status: 404 });
+      return updated;
+    },
+  })],
+  ['DELETE', /^\/api\/me\/calcs\/([\w-]+)$/, () => ({
+    auth: 'user',
+    fn: ({ user, id }) => { updateUser(user.id, (u) => ({ ...u, calcs: (u.calcs || []).filter((c) => c.id !== id) })); return { ok: true }; },
+  })],
+  ['POST', /^\/api\/me\/activity$/, () => ({
+    auth: 'user',
+    fn: ({ user, body }) => {
+      if (!TRACKED.includes(body.type)) throw Object.assign(new Error('Unknown activity'), { status: 400 });
+      logActivity(user.id, body.type, body.data || {});
+      return { ok: true };
+    },
+  })],
+  ['DELETE', /^\/api\/me\/activity$/, () => ({
+    auth: 'user',
+    fn: ({ user }) => { updateUser(user.id, (u) => ({ ...u, activity: [] })); return { ok: true }; },
+  })],
+  ['PATCH', /^\/api\/me\/profile$/, () => ({
+    auth: 'user',
+    fn: ({ user, body }) => {
+      const name = String(body.name ?? '').trim();
+      if (!name) throw Object.assign(new Error('Name is required'), { status: 400 });
+      const u = updateUser(user.id, (x) => ({ ...x, name, phone: String(body.phone ?? x.phone ?? '').trim() }));
+      return publicUser(u);
+    },
+  })],
   ['DELETE', /^\/api\/users\/([\w-]+)$/, () => ({
     auth: 'admin',
-    fn: ({ id }) => { db.set('users', db.get('users').filter((u) => u.id !== id)); broadcast('users'); return { ok: true }; },
+    fn: ({ id }) => {
+      db.set('users', db.get('users').filter((u) => u.id !== id));
+      db.set('sessions', Object.fromEntries(Object.entries(db.get('sessions')).filter(([, x]) => x.id !== id)));
+      broadcast('users');
+      return { ok: true };
+    },
   })],
 
   ['GET', /^\/api\/settings$/, () => ({ fn: () => db.get('settings') })],
@@ -151,6 +305,7 @@ const server = createServer(async (req, res) => {
     const token = (req.headers.authorization || '').replace(/^Bearer /, '');
     const user = sessions.get(token) || null;
     if (auth === 'admin' && user?.role !== 'admin') return send(res, 401, { error: 'Admin sign-in required' });
+    if (auth === 'user' && user?.role !== 'user') return send(res, 401, { error: 'Please sign in to your account' });
     try {
       const body = ['POST', 'PATCH'].includes(method) ? await readBody(req) : {};
       return send(res, 200, await fn({ body, id: m[2] || m[1], user, token, query: url.searchParams }));

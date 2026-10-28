@@ -10,10 +10,31 @@ const EMPTY = {
   agents: [],
   inquiries: [],
   users: [],
-  settings: { currency: 'USD', rates: {}, autoRates: true, mortgageRate: null },
+  settings: { currency: 'INR', priceBase: 'INR', rates: {}, autoRates: true, mortgageRate: null },
+  sessions: {},
 };
 
-let data = load();
+let data = await migrateToInr(load());
+
+// Prices used to be stored in USD. Move them to INR once: sample listings get their original rupee
+// price back exactly; anything added since is converted at today's reference rate.
+async function migrateToInr(value) {
+  if (value.settings?.priceBase === 'INR') return value;
+  const seedPrices = new Map(buildSeed().properties.map((p) => [p.id, p.price]));
+  const inrPerUsd = await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=INR')
+    .then((r) => r.json()).then((d) => d.rates.INR).catch(() => 95);
+  const migrated = {
+    ...value,
+    properties: value.properties.map((p) => ({
+      ...p,
+      price: seedPrices.get(p.id) ?? Math.round(Number(p.price || 0) * inrPerUsd),
+    })),
+    settings: { ...value.settings, priceBase: 'INR', rates: {} },
+  };
+  save(migrated);
+  console.log(`Migrated ${migrated.properties.length} listing prices from USD to INR (1 USD = ₹${inrPerUsd}).`);
+  return migrated;
+}
 
 // A fresh install starts with the sample data from seed.js.
 function load() {

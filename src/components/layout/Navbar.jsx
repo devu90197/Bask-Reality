@@ -17,7 +17,14 @@ export const NAV_LINKS = [
 export function Logo() {
   return (
     <Link to="/" className="logo" aria-label="BASK Reality home">
-      <span className="logo-mark">⌂</span>
+      <span className="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 10.5 12 3l9 7.5" />
+          <path d="M5.5 9v11h13V9" />
+          <path d="M10 20v-5.5h4V20" />
+          <path d="M16.5 5.2V3.8h1.8v3" />
+        </svg>
+      </span>
       <span>BASK <b>Reality</b></span>
     </Link>
   );
@@ -55,10 +62,11 @@ export default function Navbar() {
           ))}
         </ul>
         <div className="nav-actions">
-          <Link to="/favorites" className="btn btn-ghost btn-sm hide-md">♡ Saved</Link>
+          <Link to={session?.role === 'user' ? '/account/saved' : '/favorites'} className="btn btn-ghost btn-sm hide-md">♡ Saved</Link>
           {session ? (
             <>
               {session.role === 'admin' && <Link to="/admin" className="btn btn-primary btn-sm hide-md">Admin</Link>}
+              {session.role === 'user' && <Link to="/account" className="btn btn-primary btn-sm hide-md">My account</Link>}
               <button className="btn btn-ghost btn-sm hide-md" onClick={onLogout}>Log out</button>
             </>
           ) : (
@@ -89,7 +97,8 @@ export default function Navbar() {
                   <button className="menu-close" aria-label="Close menu" onClick={() => setOpen(false)}>✕</button>
                 </div>
                 {NAV_LINKS.map((l) => <NavLink key={l.to} to={l.to}>{l.label}</NavLink>)}
-                <NavLink to="/favorites">Saved homes</NavLink>
+                <NavLink to={session?.role === 'user' ? '/account/saved' : '/favorites'}>Saved homes</NavLink>
+                {session?.role === 'user' && <NavLink to="/account">My account</NavLink>}
                 <NavLink to="/contact">Contact</NavLink>
                 {session?.role === 'admin' && <NavLink to="/admin">Admin panel</NavLink>}
                 <div className="menu-foot">

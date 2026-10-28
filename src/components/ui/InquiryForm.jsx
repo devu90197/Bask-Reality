@@ -4,7 +4,7 @@ import { useStore } from '../../context/StoreContext';
 // Saves a lead to the store; it then shows up in Admin → Inquiries.
 export default function InquiryForm({ type = 'tour', propertyId, subject = '', defaultMessage = '', extraFields = null, submitLabel = 'Send request' }) {
   const { addInquiry, session } = useStore();
-  const [form, setForm] = useState({ name: session?.name || '', email: session?.email || '', phone: '', message: defaultMessage });
+  const [form, setForm] = useState({ name: session?.name || '', email: session?.email || '', phone: session?.phone || '', message: defaultMessage });
   const [sent, setSent] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 

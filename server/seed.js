@@ -1,7 +1,5 @@
 // Sample data so every part of the site has something to show: listings for sale, rent and lease
-// across Bengaluru, agents, and a few inquiries. Prices are written in rupees and stored in USD,
-// converted at the rate passed in (the live rate when run via `npm run seed`).
-export const FALLBACK_INR_PER_USD = 83;
+// across Bengaluru, agents, and a few inquiries. Prices are stored in rupees (INR), the base currency.
 const DAY = 86400000;
 
 const img = (id, w = 1400) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=75`;
@@ -103,7 +101,7 @@ const INQUIRIES = [
   ['Fatima Khan', 'fatima.k@example.com', '+91 97311 44556', 'contact', null, 'Do you help NRIs buy property remotely?'],
 ];
 
-export function buildSeed(inrPerUsd = FALLBACK_INR_PER_USD, now = Date.now()) {
+export function buildSeed(now = Date.now()) {
   const properties = LISTINGS.map(([title, address, locality, zip, status, type, kind, beds, baths, sqft, yearBuilt, lot, priceINR, features, description], i) => ({
     id: `seed${i + 1}`,
     title,
@@ -111,7 +109,7 @@ export function buildSeed(inrPerUsd = FALLBACK_INR_PER_USD, now = Date.now()) {
     city: `${locality}, Bengaluru`,
     state: 'KA',
     zip,
-    price: Math.round(priceINR / inrPerUsd),
+    price: priceINR,
     status,
     type,
     beds: beds || '',
@@ -145,6 +143,6 @@ export function buildSeed(inrPerUsd = FALLBACK_INR_PER_USD, now = Date.now()) {
     agents: AGENTS.map((a, i) => ({ ...a, createdAt: now - i * DAY })),
     inquiries,
     users: [],
-    settings: { currency: 'INR', rates: {}, autoRates: true, mortgageRate: 8.5 },
+    settings: { currency: 'INR', priceBase: 'INR', rates: {}, autoRates: true, mortgageRate: 8.5 },
   };
 }

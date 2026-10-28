@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../context/StoreContext';
@@ -12,10 +12,17 @@ import { amenityIcon } from '../data/amenities';
 
 export default function PropertyDetail() {
   const { id } = useParams();
-  const { properties, agents, favorites, toggleFavorite, ready, mortgage, settings } = useStore();
+  const { properties, agents, favorites, toggleFavorite, ready, mortgage, settings, track, isClient, saveCalc } = useStore();
+  const [estimateSaved, setEstimateSaved] = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const closeLightbox = useCallback(() => setLightbox(null), []);
   const p = properties.find((x) => x.id === id);
+
+  // Record the visit in a signed-in client's history (once per listing opened).
+  const title = p?.title;
+  useEffect(() => {
+    if (id && title) track('view', { propertyId: id, title });
+  }, [id, title, track]);
 
   if (!ready) return <div className="container section empty">Loading…</div>;
 
@@ -89,7 +96,20 @@ export default function PropertyDetail() {
             <div className="card" style={{ marginTop: 32 }}>
               <h3>Estimated monthly payment</h3>
               <div className="calc-result">{formatPrice(Math.round(est))}<small style={{ fontSize: '1rem' }}>/mo</small></div>
-              <p className="muted">Based on 20% down and a 30-year fixed loan at {rate.toFixed(2)}%{settings.mortgageRate ? '' : " (this week's US average)"}. <Link to={`/mortgage?price=${p.price}`} style={{ color: 'var(--brand)', fontWeight: 600 }}>Customize →</Link></p>
+              <p className="muted">Based on 20% down and a 30-year fixed loan at {rate.toFixed(2)}%{settings.mortgageRate ? '' : " (this week's US average)"}. <Link to={`/mortgage?price=${p.price}&property=${p.id}`} style={{ color: 'var(--brand)', fontWeight: 600 }}>Customize →</Link></p>
+              {isClient && (estimateSaved
+                ? <p className="muted" style={{ margin: 0 }}>✓ Saved to <Link to="/account/calculations" style={{ color: 'var(--brand)', fontWeight: 600 }}>your calculations</Link>.</p>
+                : (
+                  <button
+                    type="button" className="btn btn-ghost btn-sm"
+                    onClick={() => saveCalc({
+                      name: p.title, propertyId: p.id, price: p.price, downPct: 20, interest: rate, years: 30, taxPct: 0,
+                      insurance: 0, pi: Math.round(est), tax: 0, monthly: Math.round(est),
+                    }).then(() => setEstimateSaved(true))}
+                  >
+                    Save this estimate
+                  </button>
+                ))}
             </div>
           )}
 

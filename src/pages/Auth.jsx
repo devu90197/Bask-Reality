@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStore } from '../context/StoreContext';
 
 export default function Auth({ mode = 'login' }) {
   const { login, signup, session } = useStore();
   const navigate = useNavigate();
+  const from = useLocation().state?.from;
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -13,8 +14,8 @@ export default function Auth({ mode = 'login' }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   useEffect(() => {
-    if (session) navigate(session.role === 'admin' ? '/admin' : '/', { replace: true });
-  }, [session, navigate]);
+    if (session) navigate(session.role === 'admin' ? '/admin' : from || '/account', { replace: true });
+  }, [session, navigate, from]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -34,7 +35,7 @@ export default function Auth({ mode = 'login' }) {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
         <h2>{isLogin ? 'Welcome back' : 'Create your account'}</h2>
-        <p className="muted">{isLogin ? 'Sign in to save homes and manage tours.' : 'Save homes, get alerts and more.'}</p>
+        <p className="muted">{isLogin ? 'Sign in to see your saved homes, inquiries and history.' : 'Keep saved homes, inquiries, calculations and your history in one place.'}</p>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={submit}>
           {!isLogin && <div className="field"><label htmlFor="a-name">Full name</label><input id="a-name" className="input" required value={form.name} onChange={set('name')} /></div>}

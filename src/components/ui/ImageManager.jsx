@@ -5,14 +5,14 @@ import { api } from '../../utils/api';
 const MAX_SIDE = 1600;
 
 // Shrinks an uploaded photo so it fits comfortably in browser storage.
-const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+export const fileToDataUrl = (file, maxSide = MAX_SIDE) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onerror = () => reject(new Error('Could not read file'));
   reader.onload = () => {
     const img = new Image();
     img.onerror = () => reject(new Error(`${file.name} is not a supported image`));
     img.onload = () => {
-      const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
@@ -62,7 +62,7 @@ export default function ImageManager({ images, onChange }) {
     setBusy(true);
     setError('');
     try {
-      const urls = await Promise.all(list.map(fileToDataUrl));
+      const urls = await Promise.all(list.map((f) => fileToDataUrl(f)));
       onChange([...images, ...urls]);
     } catch (e) {
       setError(e.message);

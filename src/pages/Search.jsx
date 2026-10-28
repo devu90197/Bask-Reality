@@ -26,7 +26,7 @@ const SORTERS = {
 };
 
 export default function Search({ status }) {
-  const { properties, ready } = useStore();
+  const { properties, ready, track } = useStore();
   const [params, setParams] = useSearchParams();
   const [panelOpen, setPanelOpen] = useState(false);
   const [view, setView] = useState('grid');
@@ -49,7 +49,7 @@ export default function Search({ status }) {
 
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    // Min/max are typed in the display currency; listings are stored in USD.
+    // Min/max are typed in the display currency; listings are stored in INR.
     const local = (p) => Number(p.price) * rate;
     return properties
       .filter((p) =>
@@ -62,6 +62,20 @@ export default function Search({ status }) {
         (!filters.types.length || filters.types.includes(p.type)))
       .sort(SORTERS[sort]);
   }, [properties, status, q, filters, sort, rate]);
+
+  // A search a signed-in client settles on (no changes for 1.5s) goes into their history.
+  useEffect(() => {
+    const parts = [
+      filters.min && `from ${code} ${Number(filters.min).toLocaleString()}`,
+      filters.max && `up to ${code} ${Number(filters.max).toLocaleString()}`,
+      filters.beds && `${filters.beds}+ beds`,
+      filters.baths && `${filters.baths}+ baths`,
+      filters.types.length && filters.types.join(', '),
+    ].filter(Boolean);
+    if (!q.trim() && !parts.length) return undefined;
+    const t = setTimeout(() => track('search', { status, q: q.trim(), filters: parts.join(', ') }), 1500);
+    return () => clearTimeout(t);
+  }, [q, filters, status, code, track]);
 
   const copy = COPY[status];
   const anyListed = properties.some((p) => p.status === status);

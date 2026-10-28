@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import SiteLayout from './components/layout/SiteLayout';
 import AdminLayout from './components/layout/AdminLayout';
+import AccountLayout from './components/layout/AccountLayout';
 import Home from './pages/Home';
 import Search from './pages/Search';
 import PropertyDetail from './pages/PropertyDetail';
@@ -21,6 +22,12 @@ import Inquiries from './pages/admin/Inquiries';
 import Users from './pages/admin/Users';
 import Settings from './pages/admin/Settings';
 import AgentsAdmin from './pages/admin/AgentsAdmin';
+import AccountOverview from './pages/account/Overview';
+import AccountSaved from './pages/account/Saved';
+import AccountInquiries from './pages/account/MyInquiries';
+import AccountCalculations from './pages/account/Calculations';
+import AccountHistory from './pages/account/History';
+import AccountProfile from './pages/account/Profile';
 
 export default function App() {
   return (
@@ -43,6 +50,14 @@ export default function App() {
         <Route path="privacy" element={<Legal page="privacy" />} />
         <Route path="terms" element={<Legal page="terms" />} />
         <Route path="*" element={<NotFound />} />
+      </Route>
+      <Route path="account" element={<AccountLayout />}>
+        <Route index element={<AccountOverview />} />
+        <Route path="saved" element={<AccountSaved />} />
+        <Route path="inquiries" element={<AccountInquiries />} />
+        <Route path="calculations" element={<AccountCalculations />} />
+        <Route path="history" element={<AccountHistory />} />
+        <Route path="profile" element={<AccountProfile />} />
       </Route>
       <Route path="admin" element={<AdminLayout />}>
         <Route index element={<Dashboard />} />

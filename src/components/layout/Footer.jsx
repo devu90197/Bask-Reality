@@ -1,5 +1,24 @@
 import { Link } from 'react-router-dom';
 import { Logo } from './Navbar';
+import { useStore } from '../../context/StoreContext';
+import { BASE_CURRENCY, getCurrency, rateLabel } from '../../utils/format';
+import { RATES_SOURCE } from '../../utils/rates';
+
+// Tells visitors where converted prices come from and how fresh the rate is.
+function RateNote() {
+  const { live, settings } = useStore();
+  const { code, rate } = getCurrency();
+  if (code === BASE_CURRENCY) return <span className="rate-note">Prices shown in INR, as listed.</span>;
+  const isLive = settings.autoRates !== false && live?.base === BASE_CURRENCY && live.rates?.[code];
+  return (
+    <span className="rate-note">
+      Prices listed in INR, shown in {code} at {rateLabel(code, rate)}
+      {isLive
+        ? <> · <a href={RATES_SOURCE.url} target="_blank" rel="noreferrer">ECB reference rate via Frankfurter</a>, {new Date(live.rateDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}</>
+        : ' · rate set by BASK Reality'}
+    </span>
+  );
+}
 
 export default function Footer() {
   return (
@@ -41,6 +60,7 @@ export default function Footer() {
         </div>
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} BASK Reality. All rights reserved.</span>
+          <RateNote />
           <span><Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></span>
         </div>
       </div>
